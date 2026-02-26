@@ -139,15 +139,21 @@ final class QuizListViewController: UITableViewController {
                 guard let self = self else { return }
 
                 switch result {
+
                 case .success(let quizzes):
                     self.applyQuizzes(quizzes, sourceDesc: "Loaded from network")
 
-                case .failure:
-                    // Fallback to cache
-                    if let cached = self.loadCachedQuizzes() {
+                case .failure(let error):
+
+                    // ONLY use cache if truly offline
+                    if NetworkMonitor.shared.isOnline == false,
+                       let cached = self.loadCachedQuizzes() {
+
                         self.applyQuizzes(cached, sourceDesc: "Loaded from cache (offline)")
+
                     } else {
-                        self.showNetworkError()
+                        // Wrong URL / server error / decoding error
+                        self.showNetworkError(error)
                     }
                 }
             }
