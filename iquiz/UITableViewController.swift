@@ -84,32 +84,44 @@ final class QuizListViewController: UITableViewController {
     
     
     @IBAction func settingsPressed(_ sender: Any) {
-        let alert = UIAlertController(title: "Settings", message: nil, preferredStyle: .alert)
-
-        alert.addTextField { tf in
-            tf.placeholder = "Quiz URL"
-            tf.text = AppSettings.quizSourceURL
-            tf.keyboardType = .URL
-            tf.autocapitalizationType = .none
-            tf.autocorrectionType = .no
+        
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
         }
-
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-
-        alert.addAction(UIAlertAction(title: "Save", style: .default, handler: { _ in
-            let url = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            if !url.isEmpty { AppSettings.quizSourceURL = url }
-        }))
-
-        alert.addAction(UIAlertAction(title: "Check Now", style: .default, handler: { [weak self] _ in
-            let url = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? AppSettings.quizSourceURL
-            if !url.isEmpty { AppSettings.quizSourceURL = url }
-            self?.checkNow()
-        }))
-
-        present(alert, animated: true)
+        
+//        let alert = UIAlertController(title: "Settings", message: nil, preferredStyle: .alert)
+//
+//        alert.addTextField { tf in
+//            tf.placeholder = "Quiz URL"
+//            tf.text = AppSettings.quizSourceURL
+//            tf.keyboardType = .URL
+//            tf.autocapitalizationType = .none
+//            tf.autocorrectionType = .no
+//        }
+//
+//        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+//
+//        alert.addAction(UIAlertAction(title: "Save", style: .default, handler: { _ in
+//            let url = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+//            if !url.isEmpty { AppSettings.quizSourceURL = url }
+//        }))
+//
+//        alert.addAction(UIAlertAction(title: "Check Now", style: .default, handler: { [weak self] _ in
+//            let url = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? AppSettings.quizSourceURL
+//            if !url.isEmpty { AppSettings.quizSourceURL = url }
+//            self?.checkNow()
+//        }))
+//
+//        present(alert, animated: true)
     }
         
+    
+//    @IBAction func settingsPressed(_ sender: Any) {
+//        if let url = URL(string: UIApplication.openSettingsURLString) {
+//            UIApplication.shared.open(url)
+//        }
+//    }
+    
 //        let alert = UIAlertController(
 //            title: nil,
 //            message: "Settings go here",
@@ -119,7 +131,6 @@ final class QuizListViewController: UITableViewController {
 //        present(alert, animated: true)
 //    }
     
-
     private func checkNow() {
         let url = AppSettings.quizSourceURL
 
@@ -129,21 +140,40 @@ final class QuizListViewController: UITableViewController {
 
                 switch result {
                 case .success(let quizzes):
-                    self.topics = quizzes.map { quiz in
-                        QuizTopic(
-                            title: quiz.title,
-                            description: "Loaded from network",
-                            icon: "science",
-                            quiz: quiz
-                        )
-                    }
-                    self.tableView.reloadData()
+                    self.applyQuizzes(quizzes, sourceDesc: "Loaded from network")
 
                 case .failure:
-                    self.showNetworkError()
+                    // Fallback to cache
+                    if let cached = self.loadCachedQuizzes() {
+                        self.applyQuizzes(cached, sourceDesc: "Loaded from cache (offline)")
+                    } else {
+                        self.showNetworkError()
+                    }
                 }
             }
         }
+    }
+
+    private func loadCachedQuizzes() -> [Quiz]? {
+        do {
+            let data = try QuizCache.load()
+            let decoded = try JSONDecoder().decode([QuizDTO].self, from: data)
+            return decoded.map { $0.toQuiz() }
+        } catch {
+            return nil
+        }
+    }
+
+    private func applyQuizzes(_ quizzes: [Quiz], sourceDesc: String) {
+        self.topics = quizzes.map { quiz in
+            QuizTopic(
+                title: quiz.title,
+                description: sourceDesc,
+                icon: "science", // you can map by title if you want
+                quiz: quiz
+            )
+        }
+        self.tableView.reloadData()
     }
     
     // Part 2: tap topic -> first question

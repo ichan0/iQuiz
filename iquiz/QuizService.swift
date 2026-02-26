@@ -15,28 +15,26 @@ enum QuizServiceError: Error {
 
 final class QuizService {
     func fetchQuizzes(from urlString: String, completion: @escaping (Result<[Quiz], Error>) -> Void) {
-        guard let url = URL(string: urlString) else {
-            completion(.failure(QuizServiceError.badURL))
-            return
+            guard let url = URL(string: urlString) else { completion(.failure(NSError())); return }
+
+            URLSession.shared.dataTask(with: url) { data, response, error in
+                if let error { completion(.failure(error)); return }
+                guard let data = data else { completion(.failure(NSError())); return }
+
+                do {
+                    // decode
+                    let decoded = try JSONDecoder().decode([QuizDTO].self, from: data)
+                    let quizzes = decoded.map { $0.toQuiz() }
+
+                    // cache raw JSON
+                    try? QuizCache.save(jsonData: data)
+
+                    completion(.success(quizzes))
+                } catch {
+                    completion(.failure(error))
+                }
+            }.resume()
         }
-
-        let req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
-
-        URLSession.shared.dataTask(with: req) { data, response, error in
-            if let error { completion(.failure(error)); return }
-
-            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                completion(.failure(QuizServiceError.badStatus(http.statusCode)))
-                return
-            }
-
-            do {
-                let decoded = try JSONDecoder().decode([QuizDTO].self, from: data ?? Data())
-                let quizzes = decoded.map { $0.toQuiz() }
-                completion(.success(quizzes))
-            } catch {
-                completion(.failure(QuizServiceError.decoding(error)))
-            }
-        }.resume()
-    }
+    
 }
+
