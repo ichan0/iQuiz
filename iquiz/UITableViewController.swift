@@ -154,6 +154,9 @@ final class QuizListViewController: UITableViewController {
         }
     }
 
+    @IBAction func refreshPressed(_ sender: Any) {
+        checkNow()
+    }
     private func loadCachedQuizzes() -> [Quiz]? {
         do {
             let data = try QuizCache.load()

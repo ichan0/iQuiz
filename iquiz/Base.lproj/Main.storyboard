@@ -53,6 +53,11 @@
                                 <action selector="settingsPressed:" destination="r57-QQ-KS5" id="eEa-Tt-muy"/>
                             </connections>
                         </barButtonItem>
+                        <barButtonItem title="Check Now" id="xhW-13-QVF">
+                            <connections>
+                                <action selector="refreshPressed:" destination="r57-QQ-KS5" id="Y9q-gO-C5P"/>
+                            </connections>
+                        </barButtonItem>
                     </toolbarItems>
                     <navigationItem key="navigationItem" title="Root View Controller" id="o4j-5c-Mo4"/>
                     <simulatedToolbarMetrics key="simulatedBottomBarMetrics"/>
